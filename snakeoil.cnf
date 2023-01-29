@@ -1,0 +1,108 @@
+####################################################################
+# OpenSSL configuration for self-signing code targeting Windows RT #
+#################################################################### 
+# $ openssl version
+# OpenSSL 1.1.1f  31 Mar 2020
+#################################################################### 
+# # GENERATION
+# $ echo 01 > serial
+# $ touch signlog.txt
+# $ openssl genrsa -out mxe.key 2048
+# $ openssl req -new -key mxe.key -out mxe.csr -subj \
+#   '/name=Self-signed/commonName=Arbitrary self-signed code/'
+# $ openssl ca -startdate 20010101000000Z -days 365000 \
+#   -keyfile mxe.key -in mxe.csr -out mxe.crt -selfsign -batch \
+#   -config config.cnf
+# $ openssl ca -startdate 20010101000000Z -days 365000 \
+#   -keyfile mxe.key -in mxe.csr -out tsa.crt -selfsign -batch \
+#   -config config.cnf -extensions tsa_cert
+#################################################################### 
+# # TIME STAMP
+# $ openssl ts -reply -config config.cnf -queryfile /dev/stdin -out -
+####################################################################
+
+oid_section                     = tsa_oids
+
+
+[ ca ]
+default_ca      = CA_default            # The default ca section
+
+
+[ CA_default ]
+
+dir             = $ENV::OSSLDIR         # Where everything is kept
+certs           = $dir                  # Where the issued certs are kept
+crl_dir         = $dir                  # Where the issued crl are kept
+database        = $dir/signlog.txt      # database index file.
+unique_subject  = no                    # Set to 'no' to allow creation of
+                                        # several certs with same subject.
+new_certs_dir   = $dir                  # default place for new certs.
+
+serial          = $dir/serial           # The current serial number
+private_key     = $dir/private/mxe.key  # The private key
+
+x509_extensions = usr_cert              # The extensions to add to the cert
+
+name_opt        = ca_default            # Subject Name options
+cert_opt        = ca_default            # Certificate field options
+
+default_days    = 365000                # how long to certify for
+default_crl_days= 30                    # how long before next CRL
+default_md      = default               # use public key default MD
+preserve        = no                    # keep passed DN ordering
+
+policy          = policy_anything
+
+
+[ policy_anything ]
+countryName             = optional
+stateOrProvinceName     = optional
+localityName            = optional
+organizationName        = optional
+organizationalUnitName  = optional
+commonName              = optional
+emailAddress            = optional
+
+
+[ usr_cert ]
+
+keyUsage                = critical,nonRepudiation,keyCertSign
+extendedKeyUsage        = critical,codeSigning,msCodeInd,msCodeCom
+
+
+[ tsa_cert ]
+
+#authorityKeyIdentifier  = keyid:always
+basicConstraints        = critical,CA:false
+keyUsage                = critical,nonRepudiation
+extendedKeyUsage        = critical,timeStamping
+subjectKeyIdentifier    = hash
+
+
+[ tsa_oids ]
+tsa_policy1                     = 1.2.3.4.1
+tsa_policy2                     = 1.2.3.4.5.6
+tsa_policy3                     = 1.2.3.4.5.7
+
+
+[ tsa ]
+
+default_tsa             = tsa_config
+
+
+[ tsa_config ]
+dir                     = $ENV::OSSLDIR # TSA root directory, same as root-ca
+serial                  = $dir/serial   # current serial number (mandatory)
+crypto_device	        = builtin		# OpenSSL engine to use for signing
+signer_cert             = $dir/tsa.crt  # signing certificate (optional)
+certs                   = $signer_cert
+signer_key              = $dir/private/mxe.key # tsa private key (optional)
+default_policy          = tsa_policy1
+other_policies	        = tsa_policy2, tsa_policy3	# acceptable policies (optional)
+signer_digest           = sha256        # digest to use for signing (optional)
+digests                 = sha1,sha256,sha384,sha512    # acceptable digests (mandatory)
+accuracy                = secs:1,millisecs:500,microsecs:100 # accuracy optional
+ordering                = no            # is ordering defined? (optional, default: no)
+tsa_name                = no            # must tsa name be included in reply? (opt., default: no)
+ess_cert_id_chain       = no            # must ess cert id change be incl? (opt., default: no)
+ess_cert_id_alg         = sha256        # alg to compute cert. id (optional, default: sha1)
