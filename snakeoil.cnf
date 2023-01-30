@@ -9,7 +9,8 @@
 # $ touch signlog.txt
 # $ openssl genrsa -out mxe.key 2048
 # $ openssl req -new -key mxe.key -out mxe.csr -subj \
-#   '/name=Self-signed/commonName=Arbitrary self-signed code/'
+#   '/name=Self-signed/commonName=Arbitrary self-signed code/' \
+#   -config config.cnf
 # $ openssl ca -startdate 20010101000000Z -days 365000 \
 #   -keyfile mxe.key -in mxe.csr -out mxe.crt -selfsign -batch \
 #   -config config.cnf
